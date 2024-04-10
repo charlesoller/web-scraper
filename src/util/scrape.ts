@@ -1,6 +1,7 @@
 import puppeteer from "puppeteer";
+import { convertPriceToFloat } from "./helper";
 
-export const testScrape = async(url: string) => {
+export const tenTreeScrape = async(url: string) => {
     console.log("URL: ", url)
 
       // Launch the browser
@@ -11,18 +12,32 @@ export const testScrape = async(url: string) => {
 
     // Go to your site
     await page.goto(url);
-    const element = await page.waitForSelector('h1')
-    console.log("ELE: ", element)
 
-    // // Query for an element handle.
-    // const element = await page.waitForSelector('div > .class-name');
+    // Getting the product's name
+    const titleSelector = await page.waitForSelector('#pdp-product-title')
+    const productName = await titleSelector?.evaluate(el => el.textContent)
+    await titleSelector!.dispose()
 
-    // // Do something with element...
-    // await element!.click(); // Just an example.
+    // Getting product's description
+    const descriptionSelector = await page.waitForSelector('#meet-the-product-container > p')
+    const description = await descriptionSelector?.evaluate(el => el.textContent)
+    console.log("DESCRIPTION: ", description)
+    await descriptionSelector!.dispose()
 
-    // // Dispose of handle
-    // await element!.dispose();
+    const priceSelector = await page.waitForSelector('#product_price')
+    const priceAsString = await priceSelector?.evaluate(el => el.textContent)
+    const price = convertPriceToFloat(priceAsString!)
+    console.log("PRICE: ", price)
+    priceSelector!.dispose()
 
-    // Close browser.
+    const images = await page.evaluate(() => {
+      return Array.from(
+        document.querySelectorAll("img")
+      ).map((image) => image.getAttribute("src"));
+    })
+
     await browser.close();
+    return {
+      productName, description, price, images
+    }
 }
